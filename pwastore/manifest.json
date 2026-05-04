@@ -1,0 +1,33 @@
+{
+  "app_id": "pbhub.browser.Indium",
+  "app_name": "Indium-Browser",
+  "developer": {
+    "name": "devtangle",
+    "website": "https://sites.google.com/view/pballhub/home",
+    "github": "https://github.com/PolandBallHub-Operator"
+  },
+  "version_info": {
+    "current_version": "1.0.0",
+    "release_date": "2026-05-04",
+    "last_updated": "2026-05-04"
+  },
+  "description": {
+    "short": "Webを見る？それならこれを使おう！",
+    "full": "アクセスエラー？そんな面倒なバグとはおさらば！色々なサイトを見ませんか？(このアプリは、PBhubのWebRenderのアプリ版だよ！消されたらPBhubを使お！)"
+  },
+  "links": {
+    "app_url": "https://polandballhub-operator.github.io/studyIndium/",
+    "manifest_url": ""
+  },
+  "metadata": {
+    "category": "Tools",
+    "tags": [
+      "PWA"
+    ],
+    "license": "Apache 2.0"
+  },
+  "assets": {
+    "icon": "https://raw.githubusercontent.com/PolandBallHub-Operator/studyIndium/refs/heads/main/images/icon-512.png",
+    "screenshots": []
+  }
+}
