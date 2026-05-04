@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Indium Browser</title>
+	<link rel="manifest" href="manifest.json">
+<script>
+if ('serviceWorker' in navigator) {
+	window.addEventListener('load', () => {
+	navigator.serviceWorker.register('sw.js').then(registration => {
+	console.log('ServiceWorker registration successful with scope: ', registration.scope);
+	}, err => {
+	console.log('ServiceWorker registration failed: ', err);
+	}).catch(err => {
+	console.log(err)
+	});
+	});
+}
+</script>
+    
+    
+    
+
+    <!-- Google Fonts & Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Google+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+    <!-- Import Map for Material Web & Color Utilities -->
+    <script type="importmap">
+    {
+        "imports": {
+            "@material/web/": "https://esm.run/@material/web/",
+            "@material/material-color-utilities": "https://esm.run/@material/material-color-utilities"
+        }
+    }
+    </script>
+
+    <style>
+        /* * =========================================
+         * 1. CSS Variables & Material Design Tokens
+         * =========================================
+         */
+        :root {
+            /* Base Colors (Will be overridden by JS / Monet) */
+            --md-sys-color-primary: #6750a4;
+            --md-sys-color-on-primary: #ffffff;
+            --md-sys-color-primary-container: #eaddff;
+            --md-sys-color-on-primary-container: #21005d;
+            --md-sys-color-secondary: #625b71;
+            --md-sys-color-on-secondary: #ffffff;
+            --md-sys-color-secondary-container: #e8def8;
+            --md-sys-color-on-secondary-container: #1d192b;
+            --md-sys-color-tertiary: #7d5260;
+            --md-sys-color-on-tertiary: #ffffff;
+            --md-sys-color-tertiary-container: #ffd8e4;
+            --md-sys-color-on-tertiary-container: #31111d;
+            --md-sys-color-error: #b3261e;
+            --md-sys-color-on-error: #ffffff;
+            --md-sys-color-error-container: #f9dedc;
+            --md-sys-color-on-error-container: #410e0b;
+            --md-sys-color-background: #fffbfe;
+            --md-sys-color-on-background: #1c1b1f;
+            --md-sys-color-surface: #fffbfe;
+            --md-sys-color-on-surface: #1c1b1f;
+            --md-sys-color-surface-variant: #e7e0ec;
+            --md-sys-color-on-surface-variant: #49454f;
+            --md-sys-color-outline: #79747e;
+            --md-sys-color-outline-variant: #c4c7c5;
+            --md-sys-color-inverse-surface: #313033;
+            --md-sys-color-inverse-on-surface: #f4f0f4;
+            --md-sys-color-inverse-primary: #d0bcff;
+            
+            /* Typography */
+            --md-ref-typeface-brand: 'Google Sans', sans-serif;
+            --md-ref-typeface-plain: 'Roboto', sans-serif;
+
+            /* Liquid Glass Extensions - Updated for WebRender */
+            --glass-blur: 32px;
+            --glass-saturation: 150%;
+            --glass-opacity-light: 0.6;
+            --glass-opacity-dark: 0.5;
+            --glass-border-opacity: 0.15;
+            
+            /* Animation Curves */
+            --m3-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+            --m3-easing-emphasized: cubic-bezier(0.3, 0, 0, 1);
+            --transition-duration: 0.4s;
+        }
+
+        /* * =========================================
+         * 2. Background & Fluid Mesh (Material Depth)
+         * =========================================
+         */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: var(--md-ref-typeface-plain);
+            background-color: var(--md-sys-color-background);
+            color: var(--md-sys-color-on-background);
+            transition: background-color var(--transition-duration), color var(--transition-duration);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* 全画面ブラウザ仕様 */
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .fluid-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            overflow: hidden;
+            filter: blur(80px);
+            opacity: 0.5;
+            transition: opacity 0.5s;
+            pointer-events: none;
+        }
+
+        .fluid-blob {
+            position: absolute;
+            border-radius: 50%;
+            background: var(--md-sys-color-primary-container);
+            mix-blend-mode: multiply;
+            animation: moveBlob 25s infinite alternate;
+            opacity: 0.6;
+        }
+
+        .fluid-blob:nth-child(2) {
+            background: var(--md-sys-color-secondary-container);
+            width: 500px;
+            height: 500px;
+            left: 10%;
+            top: 20%;
+            animation-duration: 30s;
+            animation-delay: -5s;
+        }
+
+        .fluid-blob:nth-child(3) {
+            background: var(--md-sys-color-tertiary-container);
+            width: 400px;
+            height: 400px;
+            right: 15%;
+            bottom: 10%;
+            animation-duration: 20s;
+            animation-delay: -2s;
+        }
+
+        @keyframes moveBlob {
+            0% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(10vw, 20vh) scale(1.2); }
+            66% { transform: translate(-10vw, 10vh) scale(0.8); }
+            100% { transform: translate(0, 0) scale(1); }
+        }
+
+        /* * =========================================
+         * 3. Header & Navigation (Liquid Glass Browser)
+         * =========================================
+         */
+        header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 50;
+            height: 64px;
+            padding: 0 8px;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            background-color: rgba(var(--md-sys-color-surface-rgb), var(--glass-opacity-light));
+            backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+            -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+            border-bottom: 1px solid rgba(128, 128, 128, var(--glass-border-opacity));
+            transition: background-color 0.3s;
+        }
+
+        body.dark-mode header {
+            background-color: rgba(30, 30, 30, var(--glass-opacity-dark));
+        }
+
+        .url-bar-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            background-color: rgba(var(--md-sys-color-on-surface-rgb), 0.05);
+            border-radius: 32px;
+            height: 44px;
+            padding: 0 8px 0 16px;
+            margin: 0 12px;
+            border: 1px solid rgba(var(--md-sys-color-on-surface-rgb), 0.1);
+            transition: all 0.3s var(--m3-easing-standard);
+        }
+
+        .url-bar-container:focus-within {
+            background-color: rgba(var(--md-sys-color-surface-rgb), 0.9);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            border-color: var(--md-sys-color-primary);
+        }
+
+        .url-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--md-sys-color-on-surface);
+            font-family: var(--md-ref-typeface-plain);
+            font-size: 16px;
+            margin: 0 8px;
+        }
+
+        #loading-progress {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            display: none;
+        }
+
+        /* * =========================================
+         * 4. Floating Tab Bar (WebRender Controls)
+         * =========================================
+         */
+        .floating-nav-container {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            width: auto;
+            max-width: 95vw;
+        }
+
+        .custom-nav {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            background-color: rgba(var(--md-sys-color-surface-rgb), var(--glass-opacity-light));
+            backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+            -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+            padding: 8px 12px;
+            border-radius: 32px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.4s var(--m3-easing-emphasized);
+            gap: 8px;
+        }
+
+        body.dark-mode .custom-nav {
+            background-color: rgba(30, 30, 30, var(--glass-opacity-dark));
+            border-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .nav-item {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 64px;
+            height: 48px;
+            cursor: pointer;
+            border-radius: 24px;
+            transition: all 0.2s var(--m3-easing-standard);
+        }
+
+        .nav-icon-container {
+            width: 48px;
+            height: 28px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 16px;
+            transition: background-color 0.3s var(--m3-easing-standard);
+        }
+
+        .nav-item .material-symbols-outlined {
+            font-size: 24px;
+            font-variation-settings: 'FILL' 0, 'wght' 400;
+            color: var(--md-sys-color-on-surface-variant);
+        }
+
+        .nav-label {
+            display: none; /* タイトルなしデザインを遵守 */
+        }
+
+        .nav-item.active .nav-icon-container {
+            background-color: var(--md-sys-color-secondary-container);
+        }
+
+        .nav-item.active .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1;
+            color: var(--md-sys-color-on-secondary-container);
+        }
+
+        .nav-item:hover .nav-icon-container {
+            background-color: rgba(var(--md-sys-color-on-surface-rgb), 0.08);
+        }
+
+        /* * =========================================
+         * 5. Layout & Sections
+         * =========================================
+         */
+        main {
+            flex: 1;
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
+            position: relative;
+            z-index: 10;
+        }
+
+        .view-section {
+            display: none;
+            width: 100%;
+            height: 100%;
+            animation: m3-fade-in 0.4s var(--m3-easing-emphasized) forwards;
+        }
+        .view-section.active { display: block; }
+
+        @keyframes m3-fade-in {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Render Host Canvas */
+        #render-host {
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
+            padding-top: 64px; /* Header Space */
+            padding-bottom: 90px; /* Nav Space */
+            overflow-y: auto; /* 修正: スクロールできるように変更 */
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Glass Cards (For Menu) */
+        .menu-container {
+            padding: 88px 16px 120px 16px;
+            max-width: 900px;
+            margin: 0 auto;
+            overflow-y: auto;
+            height: 100%;
+            box-sizing: border-box;
+        }
+
+        .glass-card {
+            background-color: rgba(var(--md-sys-color-surface-rgb), var(--glass-opacity-light));
+            backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+            -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+            border-radius: 28px;
+            padding: 24px;
+            margin-bottom: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            transition: transform 0.3s var(--m3-easing-standard), box-shadow 0.3s;
+        }
+
+        body.dark-mode .glass-card {
+            background-color: rgba(30, 30, 30, var(--glass-opacity-dark));
+            border-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .section-title {
+            font-family: var(--md-ref-typeface-brand);
+            font-size: 22px;
+            font-weight: 500;
+            margin-bottom: 16px;
+            color: var(--md-sys-color-primary);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .color-well {
+            width: 100%;
+            height: 100px;
+            border-radius: 24px;
+            margin: 16px 0;
+            background: linear-gradient(135deg, var(--md-sys-color-primary), var(--md-sys-color-tertiary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-family: var(--md-ref-typeface-brand);
+            font-size: 24px;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body class="light-mode">
+
+    <!-- Liquid Animated Background -->
+    <div class="fluid-background">
+        <div class="fluid-blob"></div>
+        <div class="fluid-blob" style="width:600px; height:600px; right: -100px; top: -100px;"></div>
+        <div class="fluid-blob"></div>
+    </div>
+
+    <!-- Header / URL Bar -->
+    <header>
+        <md-icon-button onclick="window.goHome()">
+            <span class="material-symbols-outlined" style="color: var(--md-sys-color-primary);">public</span>
+        </md-icon-button>
+        
+        <div class="url-bar-container">
+            <span class="material-symbols-outlined" style="font-size: 20px; opacity: 0.6;">search</span>
+            <input type="text" id="url-input" class="url-input" placeholder="Search or type URL" autocomplete="off" spellcheck="false">
+            <md-icon-button onclick="window.reloadCurrent()" style="margin-right: -8px;">
+                <span class="material-symbols-outlined" style="font-size: 20px;">refresh</span>
+            </md-icon-button>
+        </div>
+
+        <md-icon-button onclick="window.switchTab('menu')">
+            <span class="material-symbols-outlined">settings</span>
+        </md-icon-button>
+
+        <md-linear-progress id="loading-progress" indeterminate></md-linear-progress>
+    </header>
+
+    <main>
+        <!-- VIEW: BROWSER RENDER TARGET -->
+        <section id="view-browser" class="view-section active">
+            <div id="render-host"></div>
+        </section>
+
+        <!-- VIEW: M3D MENU & SETTINGS -->
+        <section id="view-menu" class="view-section">
+            <div class="menu-container">
+                <div class="glass-card">
+                    <div class="section-title">
+                        <span class="material-symbols-outlined">security</span>
+                        CORS Policy Configuration
+                    </div>
+                    <p style="margin-top:0; line-height: 1.6; opacity: 0.8; font-size: 14px;">
+                        WebRender shellは外部サイトのコードを取得するためにCORS Anywhereプロキシを使用します。
+                        初めて利用する場合、またはフェッチエラーが発生する場合は、以下のボタンからプロキシサーバーの一時アクセス許可を行ってください。
+                    </p>
+                    <div style="margin-top: 16px;">
+                        <md-filled-button onclick="window.location.href='https://cors-anywhere.herokuapp.com/corsdemo'">
+                            <md-icon slot="icon"><span class="material-symbols-outlined">vpn_key</span></md-icon>
+                            CORSアクセスを許可する
+                        </md-filled-button>
+                        <p style="font-size: 12px; opacity: 0.6; margin-top: 8px;">
+                            ※移動先で「Request temporary access to the demo server」をクリックし、このアプリに戻ってきてください。
+                        </p>
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <div class="section-title">
+                        <span class="material-symbols-outlined">palette</span>
+                        Dynamic Color Engine
+                    </div>
+                    <p style="margin-top:0; line-height: 1.6; opacity: 0.8; font-size: 14px;">
+                        Material 3 Depth (M3D) の動的テーマカラーとLiquid Glassスタイルを適用します。
+                    </p>
+                    <div class="color-well" id="main-visual-well">
+                        <span id="hex-display">#6750A4</span>
+                    </div>
+                    <div style="display:flex; gap:12px; justify-content: flex-end; align-items: center;">
+                        <input type="color" id="source-color-picker" value="#6750a4" style="width:0; height:0; visibility:hidden; position:absolute;">
+                        <md-icon-button onclick="document.getElementById('source-color-picker').click()">
+                            <span class="material-symbols-outlined">colorize</span>
+                        </md-icon-button>
+                        <md-outlined-button onclick="window.updateTheme('#34a853')">Emerald</md-outlined-button>
+                        <md-filled-button onclick="window.updateTheme('#4285f4')">Ocean Blue</md-filled-button>
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <div class="section-title">
+                        <span class="material-symbols-outlined">contrast</span>
+                        Theme Mode
+                    </div>
+                    <md-list style="background: transparent; border-radius: 16px;">
+                        <md-list-item type="button" onclick="window.toggleDarkMode()">
+                            <div slot="headline">Dark Mode</div>
+                            <div slot="supporting-text">Toggle immersive dark glass</div>
+                            <md-icon slot="start"><span class="material-symbols-outlined" id="theme-icon">dark_mode</span></md-icon>
+                        </md-list-item>
+                    </md-list>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Floating Navigation Bar -->
+    <div class="floating-nav-container">
+        <nav class="custom-nav">
+            <div class="nav-item" onclick="window.goBack()">
+                <div class="nav-icon-container">
+                    <span class="material-symbols-outlined">arrow_back_ios_new</span>
+                </div>
+            </div>
+            <div class="nav-item" onclick="window.goForward()">
+                <div class="nav-icon-container">
+                    <span class="material-symbols-outlined">arrow_forward_ios</span>
+                </div>
+            </div>
+            <div class="nav-item active" id="nav-browser" onclick="window.switchTab('browser')">
+                <div class="nav-icon-container">
+                    <span class="material-symbols-outlined">home</span>
+                </div>
+            </div>
+            <div class="nav-item" id="nav-menu" onclick="window.switchTab('menu')">
+                <div class="nav-icon-container">
+                    <span class="material-symbols-outlined">more_vert</span>
+                </div>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module">
+        import '@material/web/all.js';
+        import { 
+            argbFromHex, 
+            themeFromSourceColor, 
+            hexFromArgb
+        } from "@material/material-color-utilities";
+
+        // ==========================================
+        // --- 1. Global State & Initialization ---
+        // ==========================================
+        
+        let isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        let currentSourceColor = '#6750a4';
+
+        // ==========================================
+        // --- 2. Dynamic Color Engine (M3D Protocol) ---
+        // ==========================================
+
+        window.updateTheme = function(hexColor) {
+            currentSourceColor = hexColor;
+            
+            const hexDisplay = document.getElementById('hex-display');
+            if(hexDisplay) hexDisplay.textContent = hexColor.toUpperCase();
+            
+            const visualWell = document.getElementById('main-visual-well');
+            if(visualWell) visualWell.style.background = `linear-gradient(135deg, ${hexColor}, var(--md-sys-color-tertiary))`;
+
+            const argb = argbFromHex(hexColor);
+            const theme = themeFromSourceColor(argb);
+            const scheme = isDarkMode ? theme.schemes.dark : theme.schemes.light;
+
+            const root = document.documentElement;
+            
+            const tokens = {
+                'primary': scheme.primary, 'on-primary': scheme.onPrimary,
+                'primary-container': scheme.primaryContainer, 'on-primary-container': scheme.onPrimaryContainer,
+                'secondary': scheme.secondary, 'on-secondary': scheme.onSecondary,
+                'secondary-container': scheme.secondaryContainer, 'on-secondary-container': scheme.onSecondaryContainer,
+                'tertiary': scheme.tertiary, 'on-tertiary': scheme.onTertiary,
+                'tertiary-container': scheme.tertiaryContainer, 'on-tertiary-container': scheme.onTertiaryContainer,
+                'error': scheme.error, 'on-error': scheme.onError,
+                'error-container': scheme.errorContainer, 'on-error-container': scheme.onErrorContainer,
+                'background': scheme.background, 'on-background': scheme.onBackground,
+                'surface': scheme.surface, 'on-surface': scheme.onSurface,
+                'surface-variant': scheme.surfaceVariant, 'on-surface-variant': scheme.onSurfaceVariant,
+                'outline': scheme.outline, 'outline-variant': scheme.outlineVariant,
+                'inverse-surface': scheme.inverseSurface, 'inverse-on-surface': scheme.inverseOnSurface,
+            };
+
+            for (const [key, value] of Object.entries(tokens)) {
+                const hex = hexFromArgb(value);
+                root.style.setProperty(`--md-sys-color-${key}`, hex);
+                const r = (value >> 16) & 0xff;
+                const g = (value >> 8) & 0xff;
+                const b = value & 0xff;
+                root.style.setProperty(`--md-sys-color-${key}-rgb`, `${r}, ${g}, ${b}`);
+            }
+
+            const picker = document.getElementById('source-color-picker');
+            if(picker) picker.value = hexColor;
+        };
+
+        window.toggleDarkMode = function() {
+            isDarkMode = !isDarkMode;
+            document.body.classList.toggle('dark-mode', isDarkMode);
+            const icon = document.getElementById('theme-icon');
+            if(icon) icon.textContent = isDarkMode ? 'light_mode' : 'dark_mode';
+            window.updateTheme(currentSourceColor);
+        };
+
+        window.switchTab = function(tabId) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            const targetView = document.getElementById('view-' + tabId);
+            if(targetView) targetView.classList.add('active');
+
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            const targetNav = document.getElementById('nav-' + tabId);
+            if(targetNav) targetNav.classList.add('active');
+        };
+
+        document.getElementById('source-color-picker').addEventListener('input', (e) => {
+            window.updateTheme(e.target.value);
+        });
+
+        // ==========================================
+        // --- 3. WebRender Shell Engine ---
+        // ==========================================
+
+        const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+        let historyStack = [];
+        let historyIndex = -1;
+        
+        const renderHost = document.getElementById('render-host');
+        const shadowRoot = renderHost.attachShadow({mode: 'open'});
+        const urlInput = document.getElementById('url-input');
+        const loadingBar = document.getElementById('loading-progress');
+
+        // Render Initializer
+        async function loadUrl(url, addToHistory = true) {
+            if (!url) return;
+            
+            // 修正: 検索エンジンをBingへ変更
+            if (!url.startsWith('http')) {
+                if(!url.includes('.') || url.includes(' ')) {
+                    url = 'https://www.bing.com/search?q=' + encodeURIComponent(url);
+                } else {
+                    url = 'https://' + url;
+                }
+            }
+            
+            urlInput.value = url;
+            loadingBar.style.display = 'block';
+
+            // 修正: Bing URLの処理 (iframe表示 + プロキシ経由遷移の仕込み)
+            if (url.includes('bing.com')) {
+                try {
+                    const response = await fetch(proxyUrl + url, {
+                        headers: { 'X-Requested-With': 'WebRenderShell' }
+                    });
+                    if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    
+                    let htmlText = await response.text();
+                    
+                    // ベースURLの注入
+                    if (!htmlText.includes('<base')) {
+                        htmlText = htmlText.replace('<head>', `<head><base href="${url}">`);
+                    }
+                    
+                    // iframe内のリンククリックを親のloadUrlに送信するスクリプトを注入
+                    const injection = `
+                    <script>
+                        document.addEventListener('click', function(e) {
+                            const a = e.target.closest('a');
+                            if (a && a.href) {
+                                e.preventDefault();
+                                window.parent.postMessage({ type: 'webrender-navigate', url: a.href }, '*');
+                            }
+                        }, true);
+                    <\/script>
+                    `;
+                    htmlText = htmlText.replace('</body>', injection + '</body>');
+                    
+                    const blob = new Blob([htmlText], {type: 'text/html'});
+                    const blobUrl = URL.createObjectURL(blob);
+                    
+                    window.switchTab('browser');
+                    shadowRoot.innerHTML = `<iframe src="${blobUrl}" style="width:100%; height:100%; border:none; display:block;"></iframe>`;
+                    
+                    // メッセージリスナーの設定（重複登録防止）
+                    if (!window.__bingMessageListenerAdded) {
+                        window.addEventListener('message', (e) => {
+                            if(e.data && e.data.type === 'webrender-navigate') {
+                                loadUrl(e.data.url);
+                            }
+                        });
+                        window.__bingMessageListenerAdded = true;
+                    }
+                    
+                    if (addToHistory) {
+                        historyStack.splice(historyIndex + 1);
+                        historyStack.push(url);
+                        historyIndex++;
+                    }
+                } catch (error) {
+                    console.error('Bing Render Error:', error);
+                    renderErrorUI(error.message, url);
+                } finally {
+                    loadingBar.style.display = 'none';
+                }
+                return; // 処理終了
+            }
+            
+            // 通常のプロキシ処理
+            try {
+                const response = await fetch(proxyUrl + url, {
+                    headers: { 'X-Requested-With': 'WebRenderShell' }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const contentType = response.headers.get('content-type') || '';
+                
+                // --- Download Support ---
+                if (!contentType.includes('text/html') && !contentType.includes('text/plain') && !contentType.includes('application/json')) {
+                    const blob = await response.blob();
+                    const downloadUrl = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = downloadUrl;
+                    a.download = url.split('/').pop() || 'download_from_webrender';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(downloadUrl);
+                    loadingBar.style.display = 'none';
+                    return; // Stop rendering
+                }
+
+                // --- HTML Rendering ---
+                const htmlText = await response.text();
+                processAndRenderHtml(htmlText, url);
+
+                // History Management
+                if (addToHistory) {
+                    historyStack.splice(historyIndex + 1);
+                    historyStack.push(url);
+                    historyIndex++;
+                }
+
+            } catch (error) {
+                console.error('Render Error:', error);
+                renderErrorUI(error.message, url);
+            } finally {
+                loadingBar.style.display = 'none';
+            }
+        }
+
+        function processAndRenderHtml(htmlText, baseUrl) {
+            window.switchTab('browser');
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlText, 'text/html');
+
+            // Inject Base tag for relative URL resolution natively
+            let baseTag = doc.querySelector('base');
+            if (!baseTag) {
+                baseTag = doc.createElement('base');
+                doc.head.insertBefore(baseTag, doc.head.firstChild);
+            }
+            baseTag.href = baseUrl;
+
+            // Optional: force absolute URLs on attributes just in case
+            const baseObj = new URL(baseUrl);
+            doc.querySelectorAll('[src]').forEach(el => {
+                try { el.src = new URL(el.getAttribute('src'), baseObj).href; } catch(e){}
+            });
+            doc.querySelectorAll('[href]').forEach(el => {
+                try { el.href = new URL(el.getAttribute('href'), baseObj).href; } catch(e){}
+            });
+
+            // Clear Shadow DOM
+            shadowRoot.innerHTML = '';
+
+            // Inject Reset CSS into Shadow DOM to isolate styles and enable scrolling
+            const style = document.createElement('style');
+            style.textContent = `
+                :host { 
+                    display: block; 
+                    width: 100%; 
+                    height: 100%; 
+                    overflow-y: auto; 
+                    overflow-x: hidden;
+                    background-color: #ffffff; /* Default web background */
+                    color: #000000;
+                    -webkit-overflow-scrolling: touch;
+                }
+                body { margin: 0; padding: 0; min-height: 100vh; }
+                /* Custom Scrollbar for Rendered View */
+                ::-webkit-scrollbar { width: 8px; }
+                ::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); }
+                ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 4px; }
+            `;
+            shadowRoot.appendChild(style);
+
+            // Copy nodes securely (excluding executable inline scripts to avoid CORS execution crash within shadow)
+            Array.from(doc.head.childNodes).forEach(node => {
+                if(node.tagName !== 'SCRIPT') shadowRoot.appendChild(node.cloneNode(true));
+            });
+            
+            const bodyWrapper = document.createElement('div');
+            bodyWrapper.id = "webrender-body";
+            Array.from(doc.body.childNodes).forEach(node => {
+                 if(node.tagName !== 'SCRIPT') bodyWrapper.appendChild(node.cloneNode(true));
+            });
+            shadowRoot.appendChild(bodyWrapper);
+        }
+
+        function renderErrorUI(message, url) {
+            window.switchTab('browser');
+            shadowRoot.innerHTML = `
+                <style>
+                    :host { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; background:var(--md-sys-color-background, #fffbfe); font-family:sans-serif; padding: 24px; box-sizing: border-box;}
+                    .error-card { background: rgba(255,0,0,0.05); border: 1px solid rgba(255,0,0,0.2); border-radius: 24px; padding: 32px; max-width: 600px; text-align: center; }
+                    h2 { color: #b3261e; margin-top:0; font-weight: 500;}
+                    p { color: #49454f; line-height: 1.5; word-break: break-all;}
+                    button { margin-top: 24px; padding: 12px 24px; background: #b3261e; color: white; border: none; border-radius: 100px; cursor: pointer; font-size: 14px; font-weight: 500; transition: background 0.2s;}
+                    button:hover { background: #8c1d18; }
+                </style>
+                <div class="error-card">
+                    <h2>Render Engine Error</h2>
+                    <p><strong>Target:</strong> ${url}</p>
+                    <p><strong>Details:</strong> ${message}</p>
+                    <p style="font-size:13px; opacity:0.8; margin-top:16px;">
+                        CORS Anywhereの認証が切れているか、対象サーバーがリクエストを拒否しました。<br>
+                        認証ページでアクセスを許可してください。
+                    </p>
+                    <button onclick="window.parent.location.href='https://cors-anywhere.herokuapp.com/corsdemo'">
+                        CORSデモ許可ページへ移動
+                    </button>
+                </div>
+            `;
+        }
+
+        // --- Event Listeners for WebRender ---
+
+        // Intercept all link clicks inside the Shadow DOM to force proxy rendering
+        shadowRoot.addEventListener('click', (e) => {
+            const a = e.target.closest('a');
+            if (a && a.href) {
+                e.preventDefault();
+                // Shadow DOM base tag automatically resolves relative URLs to absolute
+                loadUrl(a.href);
+            }
+        });
+
+        // URL Input Enter Key
+        urlInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                loadUrl(urlInput.value);
+                urlInput.blur();
+            }
+        });
+
+        // Navigation API
+        window.goBack = () => {
+            if (historyIndex > 0) {
+                historyIndex--;
+                loadUrl(historyStack[historyIndex], false);
+            }
+        };
+        
+        window.goForward = () => {
+            if (historyIndex < historyStack.length - 1) {
+                historyIndex++;
+                loadUrl(historyStack[historyIndex], false);
+            }
+        };
+        
+        window.goHome = () => {
+            // Default home view
+            loadUrl('https://www.bing.com');
+        };
+        
+        window.reloadCurrent = () => {
+            if(historyIndex >= 0) {
+                loadUrl(historyStack[historyIndex], false);
+            } else if (urlInput.value) {
+                loadUrl(urlInput.value);
+            }
+        };
+
+        // --- Init ---
+        window.addEventListener('load', () => {
+            window.updateTheme(currentSourceColor);
+            if(isDarkMode) document.body.classList.add('dark-mode');
+            
+            // Load a default page to demonstrate WebRender
+            setTimeout(() => {
+                loadUrl('https://www.bing.com');
+            }, 500);
+        });
+
+        // Fluid Background Parallax
+        window.addEventListener('mousemove', (e) => {
+            const x = (e.clientX / window.innerWidth - 0.5) * 40;
+            const y = (e.clientY / window.innerHeight - 0.5) * 40;
+            const blobs = document.querySelectorAll('.fluid-blob');
+            blobs.forEach((b, i) => {
+                b.style.transform = `translate(${x * (i+1)}px, ${y * (i+1)}px)`;
+            });
+        });
+
+    </script>
+</body>
+</html>
